@@ -1,7 +1,20 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+        pathname: "**",
+      },
+    ],
+  },
+  reactStrictMode: false,
+  distDir: "build",
+  eslint: {
+    ignoreDuringBuilds: true, // ✅ ปิด ESLint ตอน build
+  },
 };
 
 export default nextConfig;

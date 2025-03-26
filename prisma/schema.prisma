@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js" // ใช้ Prisma Client เป็นเครื่องมือในการเข้าถึงฐานข้อมูล
+}
+
+// กำหนด datasource สำหรับเชื่อมต่อฐานข้อมูล
+datasource db {
+  provider  = "postgresql" // ใช้ PostgreSQL เป็นฐานข้อมูล
+  url       = env("DATABASE_URL") // URL ของฐานข้อมูล, ดึงจาก environment variable
+  directUrl = env("DIRECT_URL") // URL สำหรับการเชื่อมต่อโดยตรง (หากมี)
+}
+
+// Enum สำหรับสถานะของผู้ใช้ในระบบ
+enum Status {
+  ONLINE // สถานะออนไลน์
+  OFFLINE // สถานะออฟไลน์
+}
+
+// โมเดล User (ผู้ใช้)
+model User {
+  id                Int          @id @default(autoincrement()) // ไอดีผู้ใช้ เป็นเลขจำนวนเต็มที่เพิ่มขึ้นอัตโนมัติ
+  name              String // ชื่อผู้ใช้
+  email             String       @unique // อีเมลที่ไม่ซ้ำกัน
+  password          String? // รหัสผ่าน (อาจไม่มีได้)
+  status            Status       @default(OFFLINE) // สถานะผู้ใช้เริ่มต้นเป็น OFFLINE
+  messagesSent      Message[]    @relation("SentMessages") // ข้อความที่ผู้ใช้ส่ง (ความสัมพันธ์กับ Message)
+  messagesReceived  Message[]    @relation("ReceivedMessages") // ข้อความที่ผู้ใช้ได้รับ (ความสัมพันธ์กับ Message)
+  callsInitiated    Call[]       @relation("CallInitiator") // การโทรที่ผู้ใช้เริ่มต้น (ความสัมพันธ์กับ Call)
+  callsParticipated Call[]       @relation("CallParticipants") // การโทรที่ผู้ใช้เข้าร่วม (ความสัมพันธ์กับ Call)
+  groups            Group[]      @relation("GroupMembers") // กลุ่มที่ผู้ใช้เป็นสมาชิก (ความสัมพันธ์กับ Group)
+  media             Media[] // สื่อที่ผู้ใช้ส่ง (ความสัมพันธ์กับ Media)
+  emailVerified     DateTime? // วันที่อีเมลถูกยืนยัน
+  accounts          Account[] // บัญชีผู้ใช้จากภายนอก (เช่น Google, Facebook)
+  readStatuses      ReadStatus[] // สถานะการอ่านของข้อความ (ความสัมพันธ์กับ ReadStatus)
+  image             String? // รูปภาพโปรไฟล์ของผู้ใช้
+  sessions          Session[] // เซสชั่นที่ผู้ใช้เข้าสู่ระบบ (ความสัมพันธ์กับ Session)
+
+  friendshipsSent     Friendship[] @relation("FriendshipUser1") // คำขอที่ส่งไป
+  friendshipsReceived Friendship[] @relation("FriendshipUser2") // คำขอที่ได้รับ
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+// โมเดล Session (เซสชั่นผู้ใช้)
+model Session {
+  id           String   @id @default(cuid()) // ไอดีของเซสชั่น
+  userId       Int // ไอดีของผู้ใช้ที่เข้าสู่ระบบ
+  expires      DateTime // เวลาหมดอายุของเซสชั่น
+  sessionToken String   @unique // session token
+  accessToken  String   @unique // access token
+  createdAt    DateTime @default(now()) // เวลาที่สร้างเซสชั่น
+  updatedAt    DateTime @updatedAt // เวลาที่อัพเดตเซสชั่นล่าสุด
+  user         User     @relation(fields: [userId], references: [id]) // ความสัมพันธ์กับ User
+}
+
+enum FriendshipStatus {
+  UNIDENTIFIED
+  PENDING // รอการยืนยัน
+  ACCEPTED // เป็นเพื่อนแล้ว
+  BLOCKED // บล็อกกัน
+}
+
+model Friendship {
+  id        Int              @id @default(autoincrement())
+  user1     User             @relation("FriendshipUser1", fields: [user1Id], references: [id])
+  user1Id   Int
+  user2     User             @relation("FriendshipUser2", fields: [user2Id], references: [id])
+  user2Id   Int
+  blockedById Int?
+  status    FriendshipStatus @default(UNIDENTIFIED) // ใช้ ENUM แทน String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt // เวลาอัปเดตล่าสุด
+}
+
+// โมเดล Message (ข้อความ)
+model Message {
+  id           Int          @id @default(autoincrement()) // ไอดีของข้อความ
+  content      String? // เนื้อหาของข้อความ
+  sender       User         @relation("SentMessages", fields: [senderId], references: [id]) // ผู้ส่งข้อความ
+  senderId     Int // ไอดีของผู้ส่ง
+  receiver     User?        @relation("ReceivedMessages", fields: [receiverId], references: [id]) // ผู้รับข้อความ
+  receiverId   Int? // ไอดีของผู้รับ (อาจไม่มีได้)
+  group        Group?       @relation(fields: [groupId], references: [id]) // กลุ่มที่ข้อความถูกส่งไป
+  groupId      Int? // ไอดีของกลุ่ม (อาจไม่มีได้)
+  media        Media[] // สื่อที่เกี่ยวข้องกับข้อความ
+  readStatuses ReadStatus[] // สถานะการอ่านของข้อความ
+  createdAt    DateTime     @default(now())
+  file         String?
+}
+
+// โมเดล Group (กลุ่ม)
+model Group {
+  id       Int       @id @default(autoincrement()) // ไอดีของกลุ่ม
+  name     String // ชื่อกลุ่ม
+  password String? // รหัสผ่าน (อาจไม่มีได้)
+  members  User[]    @relation("GroupMembers") // สมาชิกในกลุ่ม (ความสัมพันธ์กับ User)
+  messages Message[] // ข้อความในกลุ่ม (ความสัมพันธ์กับ Message)
+}
+
+// โมเดล Call (การโทร)
+model Call {
+  id           Int       @id @default(autoincrement()) // ไอดีของการโทร
+  type         String // ประเภทของการโทร ("voice" หรือ "video")
+  startTime    DateTime // เวลาที่เริ่มต้นการโทร
+  endTime      DateTime? // เวลาที่สิ้นสุดการโทร (อาจไม่มีได้)
+  initiator    User      @relation("CallInitiator", fields: [initiatorId], references: [id]) // ผู้เริ่มการโทร
+  initiatorId  Int // ไอดีของผู้เริ่มการโทร
+  participants User[]    @relation("CallParticipants") // ผู้เข้าร่วมการโทร
+}
+
+// โมเดล Media (สื่อที่ใช้ในข้อความหรือการโทร)
+model Media {
+  id        Int      @id @default(autoincrement()) // ไอดีของสื่อ
+  type      String // ประเภทของสื่อ (เช่น "photo", "video", "file")
+  url       String // URL ของสื่อ
+  message   Message? @relation(fields: [messageId], references: [id]) // ความสัมพันธ์กับ Message
+  messageId Int? // ไอดีของข้อความ (อาจไม่มีได้)
+  user      User?    @relation(fields: [userId], references: [id]) // ความสัมพันธ์กับ User
+  userId    Int? // ไอดีของผู้ใช้ (อาจไม่มีได้)
+}
+
+// โมเดล ReadStatus (สถานะการอ่านของข้อความ)
+model ReadStatus {
+  id        Int     @id @default(autoincrement()) // ไอดีของสถานะการอ่าน
+  message   Message @relation(fields: [messageId], references: [id]) // ความสัมพันธ์กับ Message
+  messageId Int // ไอดีของข้อความ
+  user      User    @relation(fields: [userId], references: [id]) // ความสัมพันธ์กับ User
+  userId    Int // ไอดีของผู้ใช้
+  read      Boolean @default(false) // สถานะการอ่าน (เริ่มต้นเป็น false)
+}
