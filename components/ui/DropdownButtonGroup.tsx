@@ -15,12 +15,12 @@ interface User {
 }
 
 interface DropdownButtonProps {
-  selectedUser: User;
+  setIsOpenGroup: User;
   onFriendshipUpdate?: (newStatus: string) => void;
 }
 
-const DropdownButton: React.FC<DropdownButtonProps> = ({
-  selectedUser,
+const DropdownButtonGroup: React.FC<DropdownButtonProps> = ({
+  setIsOpenGroup,
   onFriendshipUpdate,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -39,7 +39,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
       return;
     }
 
-    if (!selectedUser.friendshipId) {
+    if (!setIsOpenGroup.friendshipId) {
       toast.error("ไม่พบ Friendship ID");
       setIsOpen(false);
       return;
@@ -47,7 +47,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
 
     try {
       const res = await fetch(
-        `/api/user/friendship/block/${selectedUser.friendshipId}`,
+        `/api/user/friendship/block/${setIsOpenGroup.friendshipId}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -75,7 +75,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
       return;
     }
 
-    if (!selectedUser.friendshipId) {
+    if (!setIsOpenGroup.friendshipId) {
       toast.error("ไม่พบ Friendship ID");
       setIsOpen(false);
       return;
@@ -83,7 +83,7 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
 
     try {
       const res = await fetch(
-        `/api/user/friendship/deletefriend/${selectedUser.friendshipId}`,
+        `/api/user/friendship/deletefriend/${setIsOpenGroup.friendshipId}`,
         {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
@@ -158,64 +158,38 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg z-10">
           <ul className="py-1">
-            <li className="px-4 py-2 flex items-center gap-2 border-b border-gray-200">
-              {selectedUser.image ? (
-                <Image
-                  src={selectedUser.image}
-                  alt="Profile"
-                  width={30}
-                  height={30}
-                  className="rounded-full"
-                />
-              ) : (
-                <Image
-                  src="/man.svg"
-                  alt="Profile"
-                  width={30}
-                  height={30}
-                  className="rounded-full"
-                />
-              )}
-              <span className="text-gray-800">
-                {selectedUser.name || "Unknown"}
-              </span>
-            </li>
+            <li className="px-4 py-2 flex items-center gap-2 border-b border-gray-200"></li>
             <li className="px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer flex items-center gap-2">
-              <Icon icon="uil:user" width="20" height="20" />
-              โปรไฟล์
+              <Icon
+                icon="material-symbols:image-outline-rounded"
+                width="24"
+                height="24"
+              />
+              เปลื่ยนรูปกลุ่ม
             </li>
             <li
               onClick={() => {
-                if (selectedUser.id) {
-                  createGroup(selectedUser.id);
+                if (setIsOpenGroup.id) {
+                  createGroup(setIsOpenGroup.id);
                 } else {
                   toast.error("ไม่พบ ID ของผู้ใช้");
                 }
               }}
               className="px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
             >
-              <Icon icon="fluent-mdl2:add-group" width="20" height="20" />
-              สร้างกลุ่มกับคนนี้
+              <Icon
+                icon="material-symbols-light:change-circle-outline"
+                width="24"
+                height="24"
+              />
+              เปลื่ยนชื่อกลุ่ม
             </li>
-            {selectedUser.friendshipStatus === "ACCEPTED" && (
-              <li
-                onClick={handleBlock}
-                className="px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
-              >
-                <Icon
-                  icon="material-symbols-light:block"
-                  width="20"
-                  height="20"
-                />
-                บล็อก
-              </li>
-            )}
             <li
               onClick={handleDelete}
               className="px-4 py-2 text-gray-800 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
             >
-              <Icon icon="uil:user-minus" width="20" height="20" />
-              ลบเพื่อน
+              <Icon icon="iconamoon:exit-thin" width="20" height="20" />
+              ออกจากกลุ่ม
             </li>
           </ul>
         </div>
@@ -224,4 +198,4 @@ const DropdownButton: React.FC<DropdownButtonProps> = ({
   );
 };
 
-export default DropdownButton;
+export default DropdownButtonGroup;

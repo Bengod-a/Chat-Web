@@ -14,6 +14,7 @@ interface SideBarProps {
   setHome: (value: boolean) => void;
 }
 
+
 interface User {
   id: number;
   name?: string;

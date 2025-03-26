@@ -419,7 +419,6 @@
 //     }
 //   };
 
-
 //   const handleUnBlock = async () => {
 //     if (status !== "authenticated" || !session?.user?.id) {
 //       setIsOpen(false);
@@ -730,7 +729,6 @@
 
 // export default ChatWindow;
 
-
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
@@ -747,7 +745,8 @@ import DropdownButton from "../ui/DropdownButton";
 
 const socket = io("http://localhost:5000");
 
-const NEXT_PUBLIC_ENCRYPTION_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY as string;
+const NEXT_PUBLIC_ENCRYPTION_KEY = process.env
+  .NEXT_PUBLIC_ENCRYPTION_KEY as string;
 
 interface User {
   id: number;
@@ -834,10 +833,14 @@ const ChatWindow: React.FC<{
 
         const receivedMessage: Message = {
           id: msg.id || `${msg.userId}-${Date.now()}`,
-          sender: msg.userId === session?.user?.id ? "คุณ" : selectedUser.name || "",
+          sender:
+            msg.userId === session?.user?.id ? "คุณ" : selectedUser.name || "",
           content: finalContent,
           profile: msg.profile || selectedUser.image || "man.svg",
-          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
           isMe: msg.userId === session?.user?.id,
           file: msg.file,
         };
@@ -863,7 +866,8 @@ const ChatWindow: React.FC<{
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!session?.user?.id || !selectedUser?.id || (!message.trim() && !file)) return;
+    if (!session?.user?.id || !selectedUser?.id || (!message.trim() && !file))
+      return;
     setIsLoading(true);
 
     const chatId =
@@ -874,7 +878,10 @@ const ChatWindow: React.FC<{
     const formData = new FormData();
     let encryptedContent = null;
     if (message.trim()) {
-      encryptedContent = CryptoJS.AES.encrypt(message, NEXT_PUBLIC_ENCRYPTION_KEY).toString();
+      encryptedContent = CryptoJS.AES.encrypt(
+        message,
+        NEXT_PUBLIC_ENCRYPTION_KEY
+      ).toString();
       formData.append("content", encryptedContent);
     }
     formData.append("recipientId", String(selectedUser.id));
@@ -906,7 +913,10 @@ const ChatWindow: React.FC<{
         sender: "คุณ",
         profile: session.user.image || "man.svg",
         content: message || null,
-        time: new Date(data.data.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        time: new Date(data.data.createdAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
         isMe: true,
         file: data.data.file || null,
       };
@@ -940,10 +950,16 @@ const ChatWindow: React.FC<{
 
           return {
             id: msg.id,
-            sender: msg.sender.id === Number(session.user.id) ? "คุณ" : msg.sender.name || "ไม่ทราบชื่อ",
+            sender:
+              msg.sender.id === Number(session.user.id)
+                ? "คุณ"
+                : msg.sender.name || "ไม่ทราบชื่อ",
             profile: msg.sender.image || "man.svg",
             content: finalContent,
-            time: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            time: new Date(msg.createdAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
             isMe: msg.sender.id === Number(session.user.id),
             file: msg.file || null,
           };
@@ -962,8 +978,12 @@ const ChatWindow: React.FC<{
       toast.error("ไฟล์ใหญ่เกิน 50MB ไม่สามารถอัปโหลดได้");
       return;
     }
-    const pptxMimeType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
-    if (selectedFile.type === pptxMimeType || selectedFile.name.endsWith(".pptx")) {
+    const pptxMimeType =
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+    if (
+      selectedFile.type === pptxMimeType ||
+      selectedFile.name.endsWith(".pptx")
+    ) {
       toast.error("ไม่สามารถอัปโหลดไฟล์ PPT ได้");
       return;
     }
@@ -981,49 +1001,92 @@ const ChatWindow: React.FC<{
     }
   };
 
-  const FilePreview: React.FC<{ file: File | null; filePreview: string | null; onRemove: () => void }> = ({
-    file,
-    filePreview,
-    onRemove,
-  }) => {
+  const FilePreview: React.FC<{
+    file: File | null;
+    filePreview: string | null;
+    onRemove: () => void;
+  }> = ({ file, filePreview, onRemove }) => {
     if (!file || !filePreview) return null;
 
     const renderPreview = () => {
       if (file.type.startsWith("image/")) {
-        return <Image src={filePreview} alt="preview" width={100} height={100} className="rounded" />;
+        return (
+          <Image
+            src={filePreview}
+            alt="preview"
+            width={100}
+            height={100}
+            className="rounded"
+          />
+        );
       } else if (file.type === "text/plain" || file.name.endsWith(".txt")) {
         return (
           <div className="text-sm text-gray-600 bg-gray-100 p-2 rounded-md">
-            <Icon icon="mdi:file-document" width="20" height="20" className="inline mr-1" />
+            <Icon
+              icon="mdi:file-document"
+              width="20"
+              height="20"
+              className="inline mr-1"
+            />
             {file.name} (Preview: {filePreview || "Loading..."})
           </div>
         );
       } else if (file.type.startsWith("video/")) {
         return filePreview.startsWith("blob:") ? (
-          <video src={filePreview} controls className="rounded-md" style={{ maxWidth: "100px", width: "auto", height: "auto" }} />
+          <video
+            src={filePreview}
+            controls
+            className="rounded-md"
+            style={{ maxWidth: "100px", width: "auto", height: "auto" }}
+          />
         ) : (
           <div className="text-sm text-gray-600 bg-gray-100 p-2 rounded-md">
-            <Icon icon="mdi:file-video" width="20" height="20" className="inline mr-1" />
+            <Icon
+              icon="mdi:file-video"
+              width="20"
+              height="20"
+              className="inline mr-1"
+            />
             {file.name}
           </div>
         );
       } else if (file.type === "application/pdf") {
         return (
-          <a href={filePreview} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:underline">
+          <a
+            href={filePreview}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-blue-600 hover:underline"
+          >
             <Icon icon="mdi:file-pdf" width="20" height="20" className="mr-1" />
             {file.name}
           </a>
         );
       } else if (file.type === "application/json") {
         return (
-          <a href={filePreview} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:underline">
-            <Icon icon="mdi:file-json" width="20" height="20" className="mr-1" />
+          <a
+            href={filePreview}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-blue-600 hover:underline"
+          >
+            <Icon
+              icon="mdi:file-json"
+              width="20"
+              height="20"
+              className="mr-1"
+            />
             {file.name}
           </a>
         );
       } else {
         return (
-          <a href={filePreview} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:underline">
+          <a
+            href={filePreview}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center text-blue-600 hover:underline"
+          >
             <Icon icon="mdi:file" width="20" height="20" className="mr-1" />
             {file.name}
           </a>
@@ -1059,7 +1122,9 @@ const ChatWindow: React.FC<{
   const getFriendship = async () => {
     if (!selectedUser.friendshipId) return;
     try {
-      const res = await fetch(`/api/user/getFriendship/${selectedUser.friendshipId}`);
+      const res = await fetch(
+        `/api/user/getFriendship/${selectedUser.friendshipId}`
+      );
       const data = await res.json();
       console.log(data);
       setFriendshipStatus(data);
@@ -1074,7 +1139,7 @@ const ChatWindow: React.FC<{
       console.log("Missing user ID or selected user ID");
       return;
     }
-    const targetId = selectedUser.id; 
+    const targetId = selectedUser.id;
     console.log("Calling user ID:", targetId);
     socket.emit("startcall", { targetId, callerId: session.user.id });
   };
@@ -1092,10 +1157,13 @@ const ChatWindow: React.FC<{
     }
 
     try {
-      const res = await fetch(`/api/user/friendship/unblock/${selectedUser.friendshipId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+      const res = await fetch(
+        `/api/user/friendship/unblock/${selectedUser.friendshipId}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       if (res.ok) {
         window.location.reload();
@@ -1116,9 +1184,21 @@ const ChatWindow: React.FC<{
       <div className="w-full h-[50px] p-2 bg-gradient-to-r from-blue-500 to-purple-500 items-center flex justify-between shadow">
         <div className="flex gap-2 items-center">
           {selectedUser.image ? (
-            <Image src={selectedUser.image} alt="Profile" width={30} height={30} className="rounded-full" />
+            <Image
+              src={selectedUser.image}
+              alt="Profile"
+              width={30}
+              height={30}
+              className="rounded-full"
+            />
           ) : (
-            <Image src="/man.svg" alt="Profile" width={30} height={30} className="rounded-full" />
+            <Image
+              src="/man.svg"
+              alt="Profile"
+              width={30}
+              height={30}
+              className="rounded-full"
+            />
           )}
           <p className="text-white">{selectedUser.name}</p>
         </div>
@@ -1127,13 +1207,23 @@ const ChatWindow: React.FC<{
           <div className="flex items-center gap-4 p-2">
             <button onClick={startcall} className="cursor-pointer">
               <span>
-                <Icon icon="proicons:call" width="20" height="20" color="white" />
+                <Icon
+                  icon="proicons:call"
+                  width="20"
+                  height="20"
+                  color="white"
+                />
               </span>
             </button>
             {isCallOpen && <CallStart user={selectedUser} />}
             <button className="cursor-pointer">
               <span>
-                <Icon icon="weui:video-call-outlined" width="24" height="24" color="white" />
+                <Icon
+                  icon="weui:video-call-outlined"
+                  width="24"
+                  height="24"
+                  color="white"
+                />
               </span>
             </button>
             <DropdownButton selectedUser={selectedUser} />
@@ -1142,7 +1232,12 @@ const ChatWindow: React.FC<{
       </div>
       <div className="flex-1 p-4 overflow-y-auto">
         {messages.map((msg) => (
-          <div key={`msg-${msg.id}`} className={`mb-4 flex ${msg.isMe ? "justify-end" : "justify-start"}`}>
+          <div
+            key={`msg-${msg.id}`}
+            className={`mb-4 flex ${
+              msg.isMe ? "justify-end" : "justify-start"
+            }`}
+          >
             <div ref={messagesEndRef} className="flex items-start w-full gap-2">
               {!msg.isMe && msg.profile && (
                 <div className="flex-shrink-0">
@@ -1160,32 +1255,50 @@ const ChatWindow: React.FC<{
               )}
               <div className="flex flex-col flex-1">
                 {msg.content && (
-                  <div className={`mb-1 flex ${msg.isMe ? "justify-end" : "justify-start"} w-full`}>
+                  <div
+                    className={`mb-1 flex ${
+                      msg.isMe ? "justify-end" : "justify-start"
+                    } w-full`}
+                  >
                     <div
                       className={`max-w-xs p-2 rounded-lg ${
-                        msg.isMe ? "bg-blue-500 text-white text-right self-end" : "bg-white text-left"
+                        msg.isMe
+                          ? "bg-blue-500 text-white text-right self-end"
+                          : "bg-white text-left"
                       }`}
                     >
                       {isUrl(msg.content) ? (
                         <a
-                          href={msg.content.startsWith("http") ? msg.content : `https://${msg.content}`}
+                          href={
+                            msg.content.startsWith("http")
+                              ? msg.content
+                              : `https://${msg.content}`
+                          }
                           target="_blank"
                           rel="noopener noreferrer"
-                          className={`underline break-all duration-300 transition-all ${
-                            msg.isMe ? "text-white hover:text-gray-800" : "text-blue-600 hover:text-blue-800"
+                          className={`underline break-all duration-300 transition-all  ${
+                            msg.isMe
+                              ? "text-white hover:text-gray-800"
+                              : "text-blue-600 hover:text-blue-800"
                           }`}
                         >
                           {msg.content}
                         </a>
                       ) : (
-                        <span>{msg.content}</span>
+                        <span className="w-[200px] h-auto break-words whitespace-pre-wrap">
+                          {msg.content}
+                        </span>
                       )}
                     </div>
                   </div>
                 )}
 
                 {msg.file && (
-                  <div className={`mt-1 flex ${msg.isMe ? "justify-end" : "justify-start"} w-full`}>
+                  <div
+                    className={`mt-1 flex ${
+                      msg.isMe ? "justify-end" : "justify-start"
+                    } w-full`}
+                  >
                     {msg.file.match(/\.(webp|jpg|jpeg|png|gif)$/i) ? (
                       <Link href={msg.file}>
                         <Image
@@ -1202,11 +1315,26 @@ const ChatWindow: React.FC<{
                         />
                       </Link>
                     ) : msg.file.match(/\.(mp4|webm|mov)$/i) ? (
-                      <video src={msg.file} controls className="rounded-md md:w-[300px] max-w-[200px]" />
+                      <video
+                        src={msg.file}
+                        controls
+                        className="rounded-md md:w-[300px] max-w-[200px]"
+                      />
                     ) : msg.file.match(/\.(txt|pdf|json)$/i) ? (
-                      <a href={msg.file} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:underline">
+                      <a
+                        href={msg.file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-blue-600 hover:underline"
+                      >
                         <Icon
-                          icon={msg.file.endsWith(".txt") ? "mdi:file-document" : msg.file.endsWith(".pdf") ? "mdi:file-pdf" : "mdi:file-json"}
+                          icon={
+                            msg.file.endsWith(".txt")
+                              ? "mdi:file-document"
+                              : msg.file.endsWith(".pdf")
+                              ? "mdi:file-pdf"
+                              : "mdi:file-json"
+                          }
                           width="20"
                           height="20"
                           className="mr-1"
@@ -1214,15 +1342,29 @@ const ChatWindow: React.FC<{
                         {msg.file.split("/").pop()}
                       </a>
                     ) : (
-                      <a href={msg.file} target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-600 hover:underline">
-                        <Icon icon="mdi:file" width="20" height="20" className="mr-1" />
+                      <a
+                        href={msg.file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center text-blue-600 hover:underline"
+                      >
+                        <Icon
+                          icon="mdi:file"
+                          width="20"
+                          height="20"
+                          className="mr-1"
+                        />
                         {msg.file.split("/").pop()}
                       </a>
                     )}
                   </div>
                 )}
 
-                <div className={`text-xs text-gray-500 ${msg.isMe ? "text-right" : "text-left"} w-full`}>
+                <div
+                  className={`text-xs text-gray-500 ${
+                    msg.isMe ? "text-right" : "text-left"
+                  } w-full`}
+                >
                   {msg.time}
                 </div>
               </div>
@@ -1245,20 +1387,36 @@ const ChatWindow: React.FC<{
         ))}
       </div>
 
-      {friendship?.status === "BLOCKED" && friendship?.blockedById === session?.user.id && (
-        <button onClick={handleUnBlock} className="p-2 cursor-pointer bg-green-500 text-white text-center rounded-lg md:mb-0 mb-10">
-          เลิกบล็อก
-        </button>
-      )}
-      {friendship?.status === "BLOCKED" && friendship?.blockedById !== session?.user.id && (
-        <div className="p-2 bg-red-100 md:mb-0 mb-10 text-red-500 text-center rounded-lg">คุณได้ถูกบล็อกจากผู้ใช้นี้</div>
-      )}
+      {friendship?.status === "BLOCKED" &&
+        friendship?.blockedById === session?.user.id && (
+          <button
+            onClick={handleUnBlock}
+            className="p-2 cursor-pointer bg-green-500 text-white text-center rounded-lg md:mb-0 mb-10"
+          >
+            เลิกบล็อก
+          </button>
+        )}
+      {friendship?.status === "BLOCKED" &&
+        friendship?.blockedById !== session?.user.id && (
+          <div className="p-2 bg-red-100 md:mb-0 mb-10 text-red-500 text-center rounded-lg">
+            คุณได้ถูกบล็อกจากผู้ใช้นี้
+          </div>
+        )}
       {friendship?.status === "ACCEPTED" && (
         <div className="p-4 bg-white shadow rounded-2xl md:mb-0 mb-9 m-3">
           <div className="flex items-center gap-2">
             <div className="relative w-full">
-              <input type="file" id="upload" className="hidden" disabled={isLoading || friendship?.status === "BLOCKED"} onChange={handleFileChange} />
-              <label htmlFor="upload" className="absolute left-3 top-1/2 -translate-y-1/2 cursor-pointer">
+              <input
+                type="file"
+                id="upload"
+                className="hidden"
+                disabled={isLoading || friendship?.status === "BLOCKED"}
+                onChange={handleFileChange}
+              />
+              <label
+                htmlFor="upload"
+                className="absolute left-3 top-1/2 -translate-y-1/2 cursor-pointer"
+              >
                 <Icon icon="iconoir:attachment" width="18" height="18" />
               </label>
               <input
@@ -1273,7 +1431,9 @@ const ChatWindow: React.FC<{
               <button
                 onClick={sendMessage}
                 disabled={isLoading || friendship?.status === "BLOCKED"}
-                className={`absolute right-3 top-1/2 -translate-y-1/2 ${isLoading ? "opacity-50" : ""}`}
+                className={`absolute right-3 top-1/2 -translate-y-1/2 ${
+                  isLoading ? "opacity-50" : ""
+                }`}
               >
                 <Icon icon="lucide:send" width="20" height="20" color="black" />
               </button>
@@ -1281,7 +1441,11 @@ const ChatWindow: React.FC<{
           </div>
           {filePreview && (
             <div className="mt-2">
-              <FilePreview file={file} filePreview={filePreview} onRemove={handleRemoveFile} />
+              <FilePreview
+                file={file}
+                filePreview={filePreview}
+                onRemove={handleRemoveFile}
+              />
             </div>
           )}
         </div>

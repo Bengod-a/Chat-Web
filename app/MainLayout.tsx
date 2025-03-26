@@ -14,16 +14,14 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
   const { selectedUser }: any = useContext(ChatContext);
 
   useEffect(() => {
-    console.log("MainLayout - Session status:", status, "Session data:", session);
 
     if (status === "loading" || !session?.user?.id) {
-      console.log("Waiting for session, status:", status);
+    
       return;
     }
 
     const userId = session.user.id;
     socket.emit("join_chat", `${userId}`);
-    console.log(`Joined personal room: ${userId}`);
 
     socket.on("connect", () => {
       console.log("Socket.IO connected, ID:", socket.id);

@@ -17,16 +17,16 @@ enum Status {
 
 // โมเดล User (ผู้ใช้)
 model User {
-  id                Int          @id @default(autoincrement()) // ไอดีผู้ใช้ เป็นเลขจำนวนเต็มที่เพิ่มขึ้นอัตโนมัติ
+  id                Int           @id @default(autoincrement()) // ไอดีผู้ใช้ เป็นเลขจำนวนเต็มที่เพิ่มขึ้นอัตโนมัติ
   name              String // ชื่อผู้ใช้
-  email             String       @unique // อีเมลที่ไม่ซ้ำกัน
+  email             String        @unique // อีเมลที่ไม่ซ้ำกัน
   password          String? // รหัสผ่าน (อาจไม่มีได้)
-  status            Status       @default(OFFLINE) // สถานะผู้ใช้เริ่มต้นเป็น OFFLINE
-  messagesSent      Message[]    @relation("SentMessages") // ข้อความที่ผู้ใช้ส่ง (ความสัมพันธ์กับ Message)
-  messagesReceived  Message[]    @relation("ReceivedMessages") // ข้อความที่ผู้ใช้ได้รับ (ความสัมพันธ์กับ Message)
-  callsInitiated    Call[]       @relation("CallInitiator") // การโทรที่ผู้ใช้เริ่มต้น (ความสัมพันธ์กับ Call)
-  callsParticipated Call[]       @relation("CallParticipants") // การโทรที่ผู้ใช้เข้าร่วม (ความสัมพันธ์กับ Call)
-  groups            Group[]      @relation("GroupMembers") // กลุ่มที่ผู้ใช้เป็นสมาชิก (ความสัมพันธ์กับ Group)
+  status            Status        @default(OFFLINE) // สถานะผู้ใช้เริ่มต้นเป็น OFFLINE
+  messagesSent      Message[]     @relation("SentMessages") // ข้อความที่ผู้ใช้ส่ง (ความสัมพันธ์กับ Message)
+  messagesReceived  Message[]     @relation("ReceivedMessages") // ข้อความที่ผู้ใช้ได้รับ (ความสัมพันธ์กับ Message)
+  callsInitiated    Call[]        @relation("CallInitiator") // การโทรที่ผู้ใช้เริ่มต้น (ความสัมพันธ์กับ Call)
+  callsParticipated Call[]        @relation("CallParticipants") // การโทรที่ผู้ใช้เข้าร่วม (ความสัมพันธ์กับ Call)
+  groupMembers      GroupMember[]
   media             Media[] // สื่อที่ผู้ใช้ส่ง (ความสัมพันธ์กับ Media)
   emailVerified     DateTime? // วันที่อีเมลถูกยืนยัน
   accounts          Account[] // บัญชีผู้ใช้จากภายนอก (เช่น Google, Facebook)
@@ -77,15 +77,15 @@ enum FriendshipStatus {
 }
 
 model Friendship {
-  id        Int              @id @default(autoincrement())
-  user1     User             @relation("FriendshipUser1", fields: [user1Id], references: [id])
-  user1Id   Int
-  user2     User             @relation("FriendshipUser2", fields: [user2Id], references: [id])
-  user2Id   Int
+  id          Int              @id @default(autoincrement())
+  user1       User             @relation("FriendshipUser1", fields: [user1Id], references: [id])
+  user1Id     Int
+  user2       User             @relation("FriendshipUser2", fields: [user2Id], references: [id])
+  user2Id     Int
   blockedById Int?
-  status    FriendshipStatus @default(UNIDENTIFIED) // ใช้ ENUM แทน String
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt // เวลาอัปเดตล่าสุด
+  status      FriendshipStatus @default(UNIDENTIFIED) // ใช้ ENUM แทน String
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt // เวลาอัปเดตล่าสุด
 }
 
 // โมเดล Message (ข้อความ)
@@ -106,11 +106,22 @@ model Message {
 
 // โมเดล Group (กลุ่ม)
 model Group {
-  id       Int       @id @default(autoincrement()) // ไอดีของกลุ่ม
+  id       Int           @id @default(autoincrement()) // ไอดีของกลุ่ม
   name     String // ชื่อกลุ่ม
   password String? // รหัสผ่าน (อาจไม่มีได้)
-  members  User[]    @relation("GroupMembers") // สมาชิกในกลุ่ม (ความสัมพันธ์กับ User)
+  members  GroupMember[] // เปลี่ยนจาก User[] เป็น GroupMember[]
   messages Message[] // ข้อความในกลุ่ม (ความสัมพันธ์กับ Message)
+}
+
+model GroupMember {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  userId    Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String?  @default("MEMBER") // เพิ่มฟิลด์ role (เช่น "ADMIN", "MEMBER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 // โมเดล Call (การโทร)

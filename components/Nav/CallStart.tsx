@@ -120,11 +120,11 @@ const CallStart = ({ user }: any) => {
       socket.off("call");
       socket.emit("leave_chat", `${userId}`);
     };
-  }, [session?.user?.id, user?.id]); // Dependency ชัดเจน ป้องกันการรันซ้ำ
+  }, [session?.user?.id, user?.id]);
 
   const handleDecline = () => {
     console.log("Call declined");
-    // อาจเพิ่ม socket.emit("decline_call", { callerId: session.user.id, targetId: user.id });
+    //  socket.emit("decline_call", { callerId: session.user.id, targetId: user.id });
   };
 
   return (

@@ -7,6 +7,8 @@ import { Icon } from "@iconify/react";
 import ChatWindow from "./ChatWindow";
 import io from "socket.io-client";
 import { useChat } from "../../app/context/GlobalContext";
+import toast from "react-hot-toast";
+import ChatWindowGroup from "./ChatWindowGroup";
 
 const socket = io("http://localhost:5000", { autoConnect: true });
 
@@ -33,17 +35,33 @@ interface Message {
   file?: string | null;
 }
 
+interface GroupMember {
+  id: number;
+  userId: number;
+  role: string;
+  user: User;
+}
+
+interface Group {
+  id: number;
+  name: string;
+  members: GroupMember[];
+}
+
 const ChatPanel = () => {
   const session = useSession();
   const router = useRouter();
   const [user, setUser] = useState<User[]>([]);
   const [search, setSearch] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isOpenGroup, setIsOpenGroup] = useState(false);
   const { selectedUser, setSelectedUser } = useChat() as any;
   const [friend, setFriend] = useState<User[]>([]);
   const [isLoadingFriends, setIsLoadingFriends] = useState(true);
   const [isLoadingChat, setIsLoadingChat] = useState(false);
   const friendRef = useRef<User[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
 
   const getUser = async () => {
     try {
@@ -90,8 +108,12 @@ const ChatPanel = () => {
       );
 
       const sortedFriends = friendsWithMessages.sort((a, b) => {
-        const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
-        const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+        const timeA = a.lastMessageTime
+          ? new Date(a.lastMessageTime).getTime()
+          : 0;
+        const timeB = b.lastMessageTime
+          ? new Date(b.lastMessageTime).getTime()
+          : 0;
         return timeB - timeA;
       });
 
@@ -118,8 +140,7 @@ const ChatPanel = () => {
     if (session.status === "authenticated" && session?.data?.user?.id) {
       getFriendsWithLastMessage();
 
-      socket.on("connect", () => {
-      });
+      socket.on("connect", () => {});
 
       socket.on("receive_message", (msg: any) => {
         const [userId1, userId2] = msg.chatId.split("-").map(Number);
@@ -143,8 +164,12 @@ const ChatPanel = () => {
                 : f
             );
             return updatedFriends.sort((a, b) => {
-              const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
-              const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+              const timeA = a.lastMessageTime
+                ? new Date(a.lastMessageTime).getTime()
+                : 0;
+              const timeB = b.lastMessageTime
+                ? new Date(b.lastMessageTime).getTime()
+                : 0;
               return timeB - timeA;
             });
           });
@@ -160,8 +185,12 @@ const ChatPanel = () => {
                 : f
             );
             return updatedFriends.sort((a, b) => {
-              const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
-              const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+              const timeA = a.lastMessageTime
+                ? new Date(a.lastMessageTime).getTime()
+                : 0;
+              const timeB = b.lastMessageTime
+                ? new Date(b.lastMessageTime).getTime()
+                : 0;
               return timeB - timeA;
             });
           });
@@ -202,10 +231,41 @@ const ChatPanel = () => {
       setSelectedUser(selectedUser);
       setIsOpen(true);
       setIsLoadingChat(false);
-    }, 500);
+    }, 0);
   };
 
-  
+  const handleGroup = (selectedGroup: Group) => { // แก้ parameter ให้รับ Group
+    setIsLoadingChat(true);
+    setTimeout(() => {
+      setSelectedGroup(selectedGroup);
+      setSelectedUser(null); // รีเซ็ต selectedUser
+      setIsOpenGroup(true);
+      setIsOpen(false); // ปิด ChatWindow
+      setIsLoadingChat(false);
+    }, 0);
+  };
+
+  const getGroup = async () => {
+    try {
+      const res = await fetch("/api/user/getGroup", {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setGroups(data);
+      } else {
+        toast.error(data.message || "ไม่สามารถดึงข้อมูลกลุ่มได้");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("เกิดข้อผิดพลาดในการดึงข้อมูลกลุ่ม");
+    }
+  };
+
+  useEffect(() => {
+    getGroup();
+  }, []);
 
   return (
     <div className="flex h-screen w-full gap-2">
@@ -218,6 +278,30 @@ const ChatPanel = () => {
         </div>
 
         <div className="space-y-2 overflow-y-auto">
+          {groups.length > 0 &&
+            groups.map((g, i) => (
+              <div
+                key={i}
+                onClick={() => handleGroup(g as any)}
+                className="rounded-md flex items-center py-2 px-4 text-[8px] md:text-sm text-white shadow-md transition-all cursor-pointer bg-gradient-to-r from-blue-500 to-purple-500"
+              >
+                <div className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full mr-3">
+                  <Icon
+                    icon="fluent-mdl2:group"
+                    width="100%"
+                    height="100%"
+                    color="white"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <p className="text-white text-[8px] md:text-sm">
+                    {g.name || "Unknown"}
+                  </p>
+                  <div className="flex gap-2"></div>
+                </div>
+              </div>
+            ))}
+
           {friend.length > 0 ? (
             friend
               .filter((u) => u.friendshipStatus !== "PENDING")
@@ -255,7 +339,6 @@ const ChatPanel = () => {
                       </span>
                     )}
                     <div className="flex gap-2">
-                      {}
                       {f.unreadMessageCount && f.unreadMessageCount > 0 ? (
                         <span className="bg-red-500 text-white text-[8px] md:text-sm rounded-full px-2">
                           {f.unreadMessageCount} ใหม่
@@ -277,6 +360,12 @@ const ChatPanel = () => {
             isOpen={isOpen}
             setIsOpen={setIsOpen}
             selectedUser={selectedUser}
+          />
+        ) : isOpenGroup && selectedGroup ? (
+          <ChatWindowGroup
+            isOpenGroup={isOpenGroup}
+            setIsOpenGroup={setIsOpenGroup}
+            selectedGroup={selectedGroup} 
           />
         ) : (
           <div className="text-gray-500 mx-auto my-auto flex items-center justify-center h-full">
