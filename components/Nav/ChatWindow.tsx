@@ -1126,7 +1126,6 @@ const ChatWindow: React.FC<{
         `/api/user/getFriendship/${selectedUser.friendshipId}`
       );
       const data = await res.json();
-      console.log(data);
       setFriendshipStatus(data);
     } catch (error) {
       console.error(error);

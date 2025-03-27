@@ -15,7 +15,7 @@ interface MessageResponse {
 
 export async function GET(request: NextRequest, context: any) {
   try {
-    const { params } = context;
+    const { params } = await context;
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user?.id) {
@@ -23,12 +23,11 @@ export async function GET(request: NextRequest, context: any) {
     }
 
     const userId = Number(session.user.id);
-    const groupIdInput = params.id;
+    const groupIdInput = await params.id
 
     const groupId = parseInt(groupIdInput, 10);
     if (isNaN(groupId)) {
       return NextResponse.json(
-        { message: "Invalid groupId: ต้องเป็นตัวเลข" },
         { status: 400 }
       );
     }

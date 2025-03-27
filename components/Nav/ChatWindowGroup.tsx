@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
 import CryptoJS from "crypto-js";
 import toast from "react-hot-toast";
+import Link from "next/link";
 
 interface Group {
   id: number;
@@ -47,7 +48,7 @@ interface Message {
 
 interface ChatWindowGroupProps {
   isOpenGroup: boolean;
-  setIsOpenGroup: any;
+  setIsOpenGroup: (isOpen: boolean) => void;
   selectedGroup: Group | null;
 }
 
@@ -57,83 +58,192 @@ const ChatWindowGroup = ({
   selectedGroup,
 }: ChatWindowGroupProps) => {
   if (!isOpenGroup || !selectedGroup) return null;
+
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>([]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  useEffect(() => {
+    update();
   }, []);
 
-  const decryptContent = (en: string) => {
+  const decryptContent = (en: string): string => {
     try {
       const bytes = CryptoJS.AES.decrypt(en, NEXT_PUBLIC_ENCRYPTION_KEY);
-      return bytes.toString(CryptoJS.enc.Utf8);
+      const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+      if (!decrypted) {
+        return en;
+      }
+      return decrypted;
     } catch (error) {
-      console.log(error);
+      console.error(error);
+      return en;
     }
   };
 
-  const isImageUrl = (text: string): boolean => {
-    const imageUrlRegex = /\.(webp|jpg|jpeg|png|gif|application|pdf|video)$/i;
-    return imageUrlRegex.test(text.trim());
-  };
+  useEffect(() => {
+    if (session?.user.id && selectedGroup.id) {
+      const chatId = `group-${selectedGroup.id}`;
+      getmessage();
 
+      socket.emit("join_chat", chatId);
 
+      const handleReceiveMessage = (msg: any) => {
+        if (msg.chatId !== chatId) return;
 
-  const getmessage = async () => {
-    if (!session?.user?.id || !selectedGroup?.id) {
-      return;
-    }
-  
-    try {
-      const res = await fetch(`/api/user/getMessagesGroup/${selectedGroup.id}`);
-      if (!res.ok) {
-        throw new Error(`Failed to fetch messages: ${res.status}`);
-      }
-  
-      const data = await res.json();
-      if (!Array.isArray(data)) {
-        throw new Error("Expected an array of messages");
-      }
-  
-      const transformedMessages: any[] = data.map((msg: ApiMessage) => {
         const contentIsImage = msg.content && isImageUrl(msg.content);
         const finalContent = contentIsImage
           ? msg.content
           : msg.content
           ? decryptContent(msg.content)
           : null;
-  
+
+        const receivedMessage: Message = {
+          id: msg.id || `${msg.userId}-${Date.now()}`,
+          sender:
+            msg.userId === session?.user?.id ? "คุณ" : selectedGroup.name || "",
+          content: finalContent,
+          profile: msg.profile || "man.svg",
+          time: new Date().toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+          isMe: msg.userId === session?.user?.id,
+          file: msg.file,
+        };
+
+        setMessages((prevMessages) => {
+          const exists = prevMessages.some((m) => m.id === receivedMessage.id);
+          if (exists) return prevMessages;
+          return [...prevMessages, receivedMessage];
+        });
+      };
+
+      socket.on("receive_message", handleReceiveMessage);
+
+
+      
+      return () => {
+        socket.off("receive_message", handleReceiveMessage);
+        socket.emit("leave_chat", chatId);
+      };
+
+    }
+  }, [session, selectedGroup]);
+
+
+
+  const isImageUrl = (text: string): boolean => {
+    const imageUrlRegex = /\.(webp|jpg|jpeg|png|gif|application|pdf|video)$/i;
+    return imageUrlRegex.test(text.trim());
+  };
+
+  // const getmessage = async () => {
+  //   if (!session?.user?.id || !selectedGroup?.id) {
+  //     return;
+  //   }
+
+  //   try {
+  //     const res = await fetch(`/api/user/getMessagesGroup/${selectedGroup.id}`);
+  //     if (!res.ok) {
+  //       throw new Error(`Failed to fetch messages: ${res.status}`);
+  //     }
+
+  //     const data = await res.json();
+  //     if (!Array.isArray(data)) {
+  //       throw new Error("Expected an array of messages");
+  //     }
+
+  //     const transformedMessages: Message[] = data.map((msg: ApiMessage) => {
+  //       const contentIsImage = msg.content && isImageUrl(msg.content);
+  //       const finalContent = contentIsImage
+  //         ? msg.content
+  //         : msg.content
+  //         ? decryptContent(msg.content)
+  //         : null;
+
+  //       return {
+  //         id: msg.id,
+  //         sender:
+  //           msg.sender.id === Number(session?.user.id)
+  //             ? "คุณ"
+  //             : msg.sender.name || "ไม่ทราบชื่อ",
+  //         profile: msg.sender.image || "/man.svg",
+  //         content: finalContent,
+  //         time: new Date(msg.createdAt).toLocaleTimeString([], {
+  //           hour: "2-digit",
+  //           minute: "2-digit",
+  //         }),
+  //         isMe: msg.sender.id === Number(session?.user.id),
+  //         file: msg.file || null,
+  //       };
+  //     });
+
+  //     setMessages(transformedMessages);
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
+
+
+  const getmessage = async () => {
+    if (!session?.user?.id || !selectedGroup?.id) {
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/user/getMessagesGroup/${selectedGroup.id}`);
+      if (!res.ok) {
+        throw new Error(`Failed to fetch messages: ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (!Array.isArray(data)) {
+        throw new Error("Expected an array of messages");
+      }
+
+      const transformedMessages: Message[] = data.map((msg: ApiMessage) => {
+        const contentIsImage = msg.content && isImageUrl(msg.content);
+        let finalContent: string | null = null;
+
+        if (contentIsImage) {
+          finalContent = msg.content;
+        } else if (msg.content) {
+          const isEncrypted = /^[A-Za-z0-9+/=]+$/.test(msg.content);
+          finalContent = isEncrypted ? decryptContent(msg.content) : msg.content;
+        }
+
         return {
           id: msg.id,
           sender:
             msg.sender.id === Number(session?.user.id)
               ? "คุณ"
               : msg.sender.name || "ไม่ทราบชื่อ",
-          profile: msg.sender.image || "man.svg",
+          profile: msg.sender.image || "/man.svg",
           content: finalContent,
           time: new Date(msg.createdAt).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           }),
           isMe: msg.sender.id === Number(session?.user.id),
-          file: msg.file || null,
+          file: msg.file || null, 
         };
       });
-  
+
       setMessages(transformedMessages);
     } catch (error) {
-      console.error( error);
+      console.error(error);
     }
   };
-  
-  console.log(messages);
-  
+
   useEffect(() => {
     if (status === "authenticated" && selectedGroup?.id) {
       getmessage();
@@ -143,8 +253,8 @@ const ChatWindowGroup = ({
   const sendMessage = async () => {
     if (!session?.user?.id || !selectedGroup?.id || (!message.trim() && !file))
       return;
-    setIsLoading(true);
 
+    setIsLoading(true);
     const chatId = `group-${selectedGroup.id}`;
     const formData = new FormData();
 
@@ -168,7 +278,7 @@ const ChatWindowGroup = ({
         }
       );
 
-      if (!res.ok) throw new Error(`${res.status}`);
+      if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);
 
       const data = await res.json();
       const messageId = data.data.id;
@@ -186,7 +296,7 @@ const ChatWindowGroup = ({
       const newMessage: Message = {
         id: messageId,
         sender: "คุณ",
-        profile: session.user.image || "man.svg",
+        profile: session.user.image || "/man.svg",
         content: message || null,
         time: new Date(data.data.createdAt).toLocaleTimeString([], {
           hour: "2-digit",
@@ -201,7 +311,9 @@ const ChatWindowGroup = ({
       setFile(null);
       setFilePreview(null);
     } catch (error) {
-      console.log(error);
+      console.error("Error sending message:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -348,6 +460,11 @@ const ChatWindowGroup = ({
     if (filePreview) URL.revokeObjectURL(filePreview);
   };
 
+  const isUrl = (text: string): boolean => {
+    const urlRegex = /^(https?:\/\/)?([\w\d-]+\.)+[\w\d-]{2,}(\/.*)?$/i;
+    return urlRegex.test(text.trim());
+  };
+
   return (
     <div className="h-full flex flex-col w-full">
       <div className="w-full h-[50px] p-2 bg-gradient-to-r from-blue-500 to-purple-500 items-center flex justify-between shadow">
@@ -371,33 +488,192 @@ const ChatWindowGroup = ({
               />
             </span>
           </button>
-          <DropdownButtonGroup setIsOpenGroup={setIsOpenGroup} />
+          <DropdownButtonGroup
+            setIsOpenGroup={setIsOpenGroup}
+            selectedGroup={selectedGroup}
+          />
         </div>
       </div>
 
       <div className="flex-1 p-4 overflow-y-auto">
-        <div className=" justify-end">
-          <div className="flex items-center w-full gap-2">
-            <div className="flex-shrink-0">
-              <Image
-                src={"man.svg"}
-                alt={`'s profile`}
-                width={32}
-                height={32}
-                className="rounded-full"
-              />
-            </div>
-            <div className="flex flex-col flex-1">
-              <div className="justify-end">
-                <div className="max-w-xs p-2 rounded-lg">
-                  <span className="w-[200px] h-auto break-words whitespace-pre-wrap">
-                    amkj
-                  </span>
+        {messages.length > 0 ? (
+          messages.map((msg) => (
+            <div
+              key={`msg-${msg.id}`}
+              className={`mb-4 flex ${
+                msg.isMe ? "justify-end" : "justify-start"
+              }`}
+            >
+              <div className="flex items-start w-full gap-2">
+                {!msg.isMe && msg.profile && (
+                  <div className="flex-shrink-0">
+                    <Image
+                      src={msg.profile}
+                      alt={`${msg.sender}'s profile`}
+                      width={32}
+                      height={32}
+                      className="rounded-full"
+                      onError={(e) => {
+                        e.currentTarget.src = "/man.svg";
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-col flex-1">
+                  {msg.content && (
+                    <div
+                      className={`mb-1 flex ${
+                        msg.isMe ? "justify-end" : "justify-start"
+                      } w-full`}
+                    >
+                      <div
+                        className={`md:max-w-xs max-w-[200px] p-2 rounded-lg ${
+                          msg.isMe
+                            ? "bg-blue-500 text-white text-right self-end"
+                            : "bg-white text-left"
+                        }`}
+                      >
+                        {isUrl(msg.content) ? (
+                          <a
+                            href={
+                              msg.content.startsWith("http")
+                                ? msg.content
+                                : `https://${msg.content}`
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`underline break-all duration-300 transition-all ${
+                              msg.isMe
+                                ? "text-white hover:text-gray-800"
+                                : "text-blue-600 hover:text-blue-800"
+                            }`}
+                          >
+                            {msg.content}
+                          </a>
+                        ) : (
+                          <span className="w-[130px] h-auto break-words whitespace-pre-wrap">
+                            {msg.content}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {msg.file && (
+                    <div
+                      className={`mt-1 flex ${
+                        msg.isMe ? "justify-end" : "justify-start"
+                      } w-full`}
+                    >
+                      {msg.file.match(/\.(webp|jpg|jpeg|png|gif)$/i) ? (
+                        <Link href={msg.file}>
+                          <Image
+                            src={msg.file}
+                            alt="Attached image"
+                            width={300}
+                            height={150}
+                            onLoadingComplete={(img) => {
+                              img.style.width = "auto";
+                              img.style.height = "auto";
+                              img.style.maxWidth = "180px";
+                            }}
+                            className="rounded-md"
+                          />
+                        </Link>
+                      ) : msg.file.match(/\.(mp4|webm|mov)$/i) ? (
+                        <video
+                          src={msg.file}
+                          controls
+                          className="rounded-md md:w-[300px] max-w-[200px]"
+                        />
+                      ) : msg.file.match(/\.(txt|pdf|json)$/i) ? (
+                        <a
+                          href={msg.file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-blue-600 hover:underline"
+                        >
+                          <Icon
+                            icon={
+                              msg.file.endsWith(".txt")
+                                ? "mdi:file-document"
+                                : msg.file.endsWith(".pdf")
+                                ? "mdi:file-pdf"
+                                : "mdi:file-json"
+                            }
+                            width="20"
+                            height="20"
+                            className="mr-1"
+                          />
+                          {msg.file.split("/").pop()}
+                        </a>
+                      ) : msg.file.match(/\.(mp3)$/i) ? (
+                        <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                          <Icon
+                            icon="mdi:music"
+                            width="24"
+                            height="24"
+                            className="text-blue-500"
+                          />
+                          <audio
+                            src={msg.file}
+                            controls
+                            className="rounded-lg md:w-[300px] max-w-[200px] border border-gray-200 shadow-inner"
+                            style={{
+                              accentColor: "#3B82F6",
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <a
+                          href={msg.file}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center text-blue-600 hover:underline"
+                        >
+                          <Icon
+                            icon="mdi:file"
+                            width="20"
+                            height="20"
+                            className="mr-1"
+                          />
+                          {msg.file.split("/").pop()}
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  <div
+                    className={`text-xs text-gray-500 ${
+                      msg.isMe ? "text-right" : "text-left"
+                    } w-full`}
+                  >
+                    {msg.time}
+                  </div>
                 </div>
+                {msg.isMe && msg.profile && (
+                  <div className="flex-shrink-0">
+                    <Image
+                      src={msg.profile}
+                      alt={`${msg.sender}'s profile`}
+                      width={32}
+                      height={32}
+                      className="rounded-full"
+                      onError={(e) => {
+                        e.currentTarget.src = "/man.svg";
+                      }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
+          ))
+        ) : (
+          <div className="text-center text-gray-500">
+            ยังไม่มีข้อความในกลุ่มนี้
           </div>
-        </div>
+        )}
+        <div ref={messagesEndRef} /> {/* ตำแหน่งที่ถูกต้องสำหรับ ref */}
       </div>
 
       <div className="p-4 bg-white shadow rounded-2xl md:mb-0 mb-9 m-3">
@@ -422,9 +698,11 @@ const ChatWindowGroup = ({
               onKeyDown={handleKeyDown}
               placeholder="พิมพ์ข้อความ..."
               className="w-full p-2 pl-10 pr-12 rounded-full bg-gray-100 border-none"
+              disabled={isLoading}
             />
             <button
               onClick={sendMessage}
+              disabled={isLoading}
               className={`absolute right-3 top-1/2 -translate-y-1/2 ${
                 isLoading ? "opacity-50" : ""
               }`}
