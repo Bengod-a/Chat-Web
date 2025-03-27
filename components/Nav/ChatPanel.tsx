@@ -45,6 +45,7 @@ interface GroupMember {
 interface Group {
   id: number;
   name: string;
+  image: string;
   members: GroupMember[];
 }
 
@@ -234,7 +235,8 @@ const ChatPanel = () => {
     }, 0);
   };
 
-  const handleGroup = (selectedGroup: Group) => { // แก้ parameter ให้รับ Group
+  const handleGroup = (selectedGroup: Group) => {
+    // แก้ parameter ให้รับ Group
     setIsLoadingChat(true);
     setTimeout(() => {
       setSelectedGroup(selectedGroup);
@@ -285,14 +287,25 @@ const ChatPanel = () => {
                 onClick={() => handleGroup(g as any)}
                 className="rounded-md flex items-center py-2 px-4 text-[8px] md:text-sm text-white shadow-md transition-all cursor-pointer bg-gradient-to-r from-blue-500 to-purple-500"
               >
-                <div className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full mr-3">
-                  <Icon
-                    icon="fluent-mdl2:group"
-                    width="100%"
-                    height="100%"
-                    color="white"
-                  />
-                </div>
+                {g.image ? (
+                  <div className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full mr-3">
+                    <img
+                      src={g.image}
+                      alt="Profile"
+                      className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full "
+                    />
+                  </div>
+                ) : (
+                  <div className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full mr-3">
+                    <Icon
+                      icon="fluent-mdl2:group"
+                      width="100%"
+                      height="100%"
+                      color="white"
+                    />
+                  </div>
+                )}
+
                 <div className="flex flex-col">
                   <p className="text-white text-[8px] md:text-sm">
                     {g.name || "Unknown"}
@@ -365,7 +378,7 @@ const ChatPanel = () => {
           <ChatWindowGroup
             isOpenGroup={isOpenGroup}
             setIsOpenGroup={setIsOpenGroup}
-            selectedGroup={selectedGroup} 
+            selectedGroup={selectedGroup}
           />
         ) : (
           <div className="text-gray-500 mx-auto my-auto flex items-center justify-center h-full">

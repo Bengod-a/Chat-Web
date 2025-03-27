@@ -1340,15 +1340,20 @@ const ChatWindow: React.FC<{
                         />
                         {msg.file.split("/").pop()}
                       </a>
-                    ) :  msg.file.match(/\.(mp3)$/i) ? (
+                    ) : msg.file.match(/\.(mp3)$/i) ? (
                       <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
-                        <Icon icon="mdi:music" width="24" height="24" className="text-blue-500" />
+                        <Icon
+                          icon="mdi:music"
+                          width="24"
+                          height="24"
+                          className="text-blue-500"
+                        />
                         <audio
                           src={msg.file}
                           controls
                           className="rounded-lg md:w-[300px] max-w-[200px] border border-gray-200 shadow-inner"
                           style={{
-                            accentColor: "#3B82F6", 
+                            accentColor: "#3B82F6",
                           }}
                         />
                       </div>

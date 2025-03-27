@@ -12,6 +12,7 @@ interface Group {
   id: number;
   name: string;
   members: { id: number; userId: number; role: string; user: any }[];
+  image: string
 }
 
 const socket = io("http://localhost:5000");
@@ -129,17 +130,12 @@ const ChatWindowGroup = ({
 
       socket.on("receive_message", handleReceiveMessage);
 
-
-      
       return () => {
         socket.off("receive_message", handleReceiveMessage);
         socket.emit("leave_chat", chatId);
       };
-
     }
   }, [session, selectedGroup]);
-
-
 
   const isImageUrl = (text: string): boolean => {
     const imageUrlRegex = /\.(webp|jpg|jpeg|png|gif|application|pdf|video)$/i;
@@ -193,7 +189,6 @@ const ChatWindowGroup = ({
   //   }
   // };
 
-
   const getmessage = async () => {
     if (!session?.user?.id || !selectedGroup?.id) {
       return;
@@ -202,7 +197,7 @@ const ChatWindowGroup = ({
     try {
       const res = await fetch(`/api/user/getMessagesGroup/${selectedGroup.id}`);
       if (!res.ok) {
-        throw new Error(`Failed to fetch messages: ${res.status}`);
+        throw new Error(`${res.status}`);
       }
 
       const data = await res.json();
@@ -218,7 +213,9 @@ const ChatWindowGroup = ({
           finalContent = msg.content;
         } else if (msg.content) {
           const isEncrypted = /^[A-Za-z0-9+/=]+$/.test(msg.content);
-          finalContent = isEncrypted ? decryptContent(msg.content) : msg.content;
+          finalContent = isEncrypted
+            ? decryptContent(msg.content)
+            : msg.content;
         }
 
         return {
@@ -234,7 +231,7 @@ const ChatWindowGroup = ({
             minute: "2-digit",
           }),
           isMe: msg.sender.id === Number(session?.user.id),
-          file: msg.file || null, 
+          file: msg.file || null,
         };
       });
 
@@ -278,7 +275,7 @@ const ChatWindowGroup = ({
         }
       );
 
-      if (!res.ok) throw new Error(`Failed to send message: ${res.status}`);
+      if (!res.ok) throw new Error(`${res.status}`);
 
       const data = await res.json();
       const messageId = data.data.id;
@@ -311,7 +308,7 @@ const ChatWindowGroup = ({
       setFile(null);
       setFilePreview(null);
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error(error);
     } finally {
       setIsLoading(false);
     }
@@ -468,7 +465,25 @@ const ChatWindowGroup = ({
   return (
     <div className="h-full flex flex-col w-full">
       <div className="w-full h-[50px] p-2 bg-gradient-to-r from-blue-500 to-purple-500 items-center flex justify-between shadow">
-        <div>
+        <div className="flex items-center ">
+          {selectedGroup.image ? (
+            <div className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full mr-3">
+              <img
+                src={selectedGroup.image}
+                alt="Profile"
+                className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full "
+              />
+            </div>
+          ) : (
+            <div className="w-[30px] h-[30px] md:w-[40px] md:h-[40px] rounded-full mr-3">
+              <Icon
+                icon="fluent-mdl2:group"
+                width="100%"
+                height="100%"
+                color="white"
+              />
+            </div>
+          )}
           <h1 className="text-white">{selectedGroup.name}</h1>
         </div>
 
@@ -673,7 +688,7 @@ const ChatWindowGroup = ({
             ยังไม่มีข้อความในกลุ่มนี้
           </div>
         )}
-        <div ref={messagesEndRef} /> {/* ตำแหน่งที่ถูกต้องสำหรับ ref */}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="p-4 bg-white shadow rounded-2xl md:mb-0 mb-9 m-3">

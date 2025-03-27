@@ -108,6 +108,7 @@ model Message {
 model Group {
   id       Int           @id @default(autoincrement()) // ไอดีของกลุ่ม
   name     String // ชื่อกลุ่ม
+  image    String?
   password String? // รหัสผ่าน (อาจไม่มีได้)
   members  GroupMember[] // เปลี่ยนจาก User[] เป็น GroupMember[]
   messages Message[] // ข้อความในกลุ่ม (ความสัมพันธ์กับ Message)
