@@ -937,7 +937,7 @@ const ChatWindow: React.FC<{
     if (!session?.user?.id || !selectedUser.id) return;
     try {
       const res = await fetch(`/api/user/getMessages/${selectedUser.id}`);
-      if (!res.ok) throw new Error(`เกิดข้อผิดพลาด HTTP! สถานะ: ${res.status}`);
+      if (!res.ok) throw new Error(`${res.status}`);
       const data = (await res.json()) as ApiMessage[];
       if (Array.isArray(data)) {
         const transformedMessages: Message[] = data.map((msg) => {
@@ -1261,7 +1261,7 @@ const ChatWindow: React.FC<{
                     } w-full`}
                   >
                     <div
-                      className={`max-w-xs p-2 rounded-lg ${
+                      className={`md:max-w-xs max-w-[200px] p-2 rounded-lg ${
                         msg.isMe
                           ? "bg-blue-500 text-white text-right self-end"
                           : "bg-white text-left"
@@ -1285,7 +1285,7 @@ const ChatWindow: React.FC<{
                           {msg.content}
                         </a>
                       ) : (
-                        <span className="w-[200px] h-auto break-words whitespace-pre-wrap">
+                        <span className="w-[130px] h-auto break-words whitespace-pre-wrap">
                           {msg.content}
                         </span>
                       )}
@@ -1341,6 +1341,18 @@ const ChatWindow: React.FC<{
                         />
                         {msg.file.split("/").pop()}
                       </a>
+                    ) :  msg.file.match(/\.(mp3)$/i) ? (
+                      <div className="flex items-center gap-2 p-2 bg-gray-100 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300">
+                        <Icon icon="mdi:music" width="24" height="24" className="text-blue-500" />
+                        <audio
+                          src={msg.file}
+                          controls
+                          className="rounded-lg md:w-[300px] max-w-[200px] border border-gray-200 shadow-inner"
+                          style={{
+                            accentColor: "#3B82F6", 
+                          }}
+                        />
+                      </div>
                     ) : (
                       <a
                         href={msg.file}
