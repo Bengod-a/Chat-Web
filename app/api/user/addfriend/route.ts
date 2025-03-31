@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(newFriendship, { status: 200 });
   } catch (error) {
-    console.error("❌ API Error:", error);
+    console.error(error);
     return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
