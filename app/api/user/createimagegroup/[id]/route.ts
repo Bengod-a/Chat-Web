@@ -103,7 +103,7 @@ export async function POST(req: NextRequest, { params }:any) {
       return NextResponse.json({ message: "ไม่ได้รับอนุญาต" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id || isNaN(Number(id))) {
       return NextResponse.json({ message: "ID ไม่ถูกต้อง" }, { status: 400 });

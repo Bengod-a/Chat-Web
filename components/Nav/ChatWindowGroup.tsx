@@ -51,12 +51,14 @@ interface ChatWindowGroupProps {
   isOpenGroup: boolean;
   setIsOpenGroup: (isOpen: boolean) => void;
   selectedGroup: Group | null;
+  setSelectedGroup: Group | any;
 }
 
 const ChatWindowGroup = ({
   isOpenGroup,
   setIsOpenGroup,
   selectedGroup,
+  setSelectedGroup
 }: ChatWindowGroupProps) => {
   if (!isOpenGroup || !selectedGroup) return null;
 
@@ -506,6 +508,7 @@ const ChatWindowGroup = ({
           <DropdownButtonGroup
             setIsOpenGroup={setIsOpenGroup}
             selectedGroup={selectedGroup}
+            setSelectedGroup={setSelectedGroup}
           />
         </div>
       </div>

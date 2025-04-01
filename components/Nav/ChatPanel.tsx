@@ -79,6 +79,7 @@ const ChatPanel = () => {
     }
   };
 
+
   const getFriendsWithLastMessage = async () => {
     try {
       if (!session?.data?.user?.id) return;
@@ -198,17 +199,35 @@ const ChatPanel = () => {
         }
       });
 
+      socket.on(
+        "changeImageGroup",
+        (data: { groupId: number; image: string }) => {
+          setGroups((prevGroups) =>
+            prevGroups.map((g) =>
+              g.id === data.groupId ? { ...g, image: data.image } : g
+            )
+          );
+        }
+      );
+
       socket.on("connect_error", (err) => {
         console.error("Socket connection error:", err);
       });
 
       return () => {
         socket.off("receive_message");
+        socket.off("changeImageGroup");
         socket.off("connect");
         socket.off("connect_error");
       };
     }
-  }, [session.status, session?.data?.user?.id, selectedUser?.id]);
+  }, [
+    session.status,
+    session?.data?.user?.id,
+    selectedUser?.id,
+    selectedGroup?.id,
+    selectedGroup?.image,
+  ]);
 
   useEffect(() => {
     if (session.status === "loading") return;
@@ -236,13 +255,12 @@ const ChatPanel = () => {
   };
 
   const handleGroup = (selectedGroup: Group) => {
-    // แก้ parameter ให้รับ Group
     setIsLoadingChat(true);
     setTimeout(() => {
       setSelectedGroup(selectedGroup);
-      setSelectedUser(null); // รีเซ็ต selectedUser
+      setSelectedUser(null);
       setIsOpenGroup(true);
-      setIsOpen(false); // ปิด ChatWindow
+      setIsOpen(false);
       setIsLoadingChat(false);
     }, 0);
   };
@@ -268,6 +286,24 @@ const ChatPanel = () => {
   useEffect(() => {
     getGroup();
   }, []);
+
+
+  useEffect(() => {
+    socket.on(
+      "ReceivedchangeImageGroup",
+      (data: { groupId: number; image: string }) => {
+        setGroups((prevGroups) =>
+          prevGroups.map((g) =>
+            g.id === data.groupId ? { ...g, image: data.image } : g
+          )
+        );
+      }
+    );
+
+    return () => {
+      socket.off("ReceivedchangeImageGroup");
+    };
+  }, [selectedGroup?.image, selectedGroup, selectedGroup?.id]);
 
   return (
     <div className="flex h-screen w-full gap-2">
@@ -379,6 +415,7 @@ const ChatPanel = () => {
             isOpenGroup={isOpenGroup}
             setIsOpenGroup={setIsOpenGroup}
             selectedGroup={selectedGroup}
+            setSelectedGroup={setSelectedGroup}
           />
         ) : (
           <div className="text-gray-500 mx-auto my-auto flex items-center justify-center h-full">

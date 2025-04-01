@@ -10,10 +10,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  reactStrictMode: false,
-  distDir: "build",
   eslint: {
-    ignoreDuringBuilds: true, // ✅ ปิด ESLint ตอน build
+    ignoreDuringBuilds: true,
   },
 };
 
